@@ -1,0 +1,365 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Collections.ObjectModel;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using LifeTester.Util;
+using System.Threading;
+
+namespace LifeTester.Model
+{
+    /// <summary>
+    /// 表示一个板卡
+    /// </summary>
+    /// 
+
+    public class Card : NotifyPropertyChanged, IVerify, ICommand, IComparer<Card>
+    {
+        private string number;
+        /// <summary>
+        /// 获取或设置板卡号
+        /// </summary>
+        public string Number
+        {
+            get
+            {
+                return number;
+            }
+            set
+            {
+                if (number != value)
+                {
+                    number = value;
+                    this.OnPropertyChanged(p => p.Number);
+                }
+            }
+        }
+
+        private string signalSource;
+        /// <summary>
+        /// 获取或设置测试信号源（音频文件）
+        /// </summary>
+        public string SignalSource
+        {
+            get
+            {
+                return signalSource;
+            }
+            set
+            {
+                if (signalSource != value)
+                {
+                    signalSource = value;
+                    this.OnPropertyChanged(p => p.SignalSource);
+                }
+            }
+        }
+
+        private VoltageType voltageType;
+
+        /// <summary>
+        /// 获取或设置电压类型
+        /// </summary>
+        public VoltageType VoltageType
+        {
+            get
+            {
+                return voltageType;
+            }
+            set
+            {
+                if (value != voltageType)
+                {
+                    voltageType = value;
+                    this.OnPropertyChanged(p => p.voltageType);
+                }
+            }
+        }
+
+        private double voltage;
+        /// <summary>
+        /// 获取或设置测试电压
+        /// </summary>
+        public double Voltage
+        {
+            get
+            {
+                return voltage;
+            }
+            set
+            {
+                if (voltage != value)
+                {
+                    voltage = value;
+                    this.OnPropertyChanged(p => p.Voltage);
+                }
+            }
+        }
+
+        private double duration;
+        /// <summary>
+        /// 获取或设置测试时长
+        /// </summary>
+        public double Duration
+        {
+            get
+            {
+                return duration;
+            }
+            set
+            {
+                if (duration != value)
+                {
+                    duration = value;
+                    this.OnPropertyChanged(p => p.Duration);
+                }
+            }
+        }
+
+        private List<Channel> channels;
+        /// <summary>
+        /// 获取或设置通道列表
+        /// </summary>
+        public List<Channel> Channels
+        {
+            get
+            {
+                return channels;
+            }
+            set
+            {
+                if (channels != value)
+                {
+                    channels = value;
+                    this.OnPropertyChanged(p => p.Channels);
+                }
+            }
+        }
+
+        private OhmSetting ohmSet;
+        /// <summary>
+        /// 获取或设置电阻判决设置
+        /// </summary>
+        public OhmSetting OhmSet
+        {
+            get
+            {
+                return ohmSet;
+            }
+            private set
+            {
+                if (ohmSet != value)
+                {
+                    ohmSet = value;
+                    this.OnPropertyChanged(p => p.OhmSet);
+                }
+            }
+        }
+
+        private ImageSource startStopImageSource = ImageUri.START_IMAGE_SOURCE;
+        /// <summary>
+        /// 获取或设置板卡启动或停止的图片源
+        /// </summary>
+        public ImageSource StartStopImageSource
+        {
+            get
+            {
+                return startStopImageSource;
+            }
+            set
+            {
+                if (startStopImageSource != value)
+                {
+                    startStopImageSource = value;
+                    this.OnPropertyChanged(p => p.StartStopImageSource);
+                }
+            }
+        }
+
+        private string imageTooltip = "启动";
+        /// <summary>
+        /// 获取或设置图片提示信息
+        /// </summary>
+        public string ImageTooltip
+        {
+            get
+            {
+                return imageTooltip;
+            }
+            set
+            {
+                if (imageTooltip != value)
+                {
+                    imageTooltip = value;
+                    this.OnPropertyChanged(p => p.ImageTooltip);
+                }
+            }
+        }
+
+        private int channelCount;
+
+        /// <summary>
+        /// 获取或设置通道数
+        /// </summary>
+        public int ChannelCount
+        {
+            get { return channelCount; }
+            set
+            {
+                if (value == 0)
+                    channelCount = 10;
+                else
+                    channelCount = value;
+
+                Channels = new List<Channel>(channelCount);
+            }
+        }
+
+        public Card()
+        {
+            OhmSet = new OhmSetting();
+        }
+
+        public bool Verify(double val)
+        {
+            return val <= OhmSet.Max && val >= OhmSet.Min;
+        }
+
+        /// <summary>
+        /// 初始化实际测试时间
+        /// </summary>
+        public void InitalActualTime()
+        {
+            this.Channels.ForEach(h =>
+            {
+                if (h.State == States.NORMAL)
+                {
+                    h.ActualDuration = 0;
+                }
+
+            }
+                );
+        }
+        private bool bIsStart = false;
+
+        public bool IsStart
+        {
+            get { return bIsStart; }
+            set { bIsStart = value; }
+        }
+        public bool Start(string channelNumber = null)
+        {
+            this.Channels.ForEach(h =>
+                {
+                    if (h.State == States.NORMAL)
+                    {
+                        h.Timer.StartTime();
+                        h.State = States.NORMAL;
+                        h.PausePlayImageSource = ImageUri.PAUSE_IMAGE_SOURCE;
+                    }
+                });
+            bIsStart = true;
+            return true;
+        }
+
+        public bool Stop()
+        {
+            if (!bIsStart)
+            {
+                return true;
+            }
+            this.Channels.ForEach(h =>
+                {
+
+                    if (h.Timer.Enabled)
+                    {
+                        //h.Timer.StopTime();
+                        h.Timer.Pause();
+                    }
+                    if (h.State == States.NORMAL)
+                    {
+                        h.PausePlayImageSource = ImageUri.PAUSE_IMAGE_SOURCE;
+                        h.State = States.STOP;
+                    }
+                });
+            bIsStart = false;
+            return true;
+        }
+
+        public bool Pause()
+        {
+            this.Channels.ForEach(h =>
+                {
+                    h.Timer.Pause();
+                    h.State = States.STOP;
+                });
+            return true;
+        }
+
+        public bool Pause(string channelNumber)
+        {
+
+            var channel = this.Channels.Find(h => h.Number.Equals(channelNumber));
+            if (channel != null)
+            {
+                if (channel.State == States.EXCEPTION || channel.State == States.COMPLETE)
+                {
+                }
+                else
+                {
+                    channel.Timer.Pause();
+                    channel.State = States.STOP;
+                }
+
+
+
+            }
+
+            return true;
+        }
+
+        public bool Continue()
+        {
+            this.Channels.ForEach(h =>
+                {
+                    h.Timer.StartTime();
+                    h.State = States.NORMAL;
+                });
+            return true;
+        }
+
+        public bool Continue(string channelNumber)
+        {
+            var channel = this.Channels.Find(h => h.Number.Equals(channelNumber));
+            if (channel != null)
+            {
+                channel.Timer.StartTime();
+                channel.State = States.NORMAL;
+            }
+            return true;
+        }
+
+        public int Compare(Card x, Card y)
+        {
+            return x.number.CompareTo(y.number);
+        }
+    }
+
+    /// <summary>
+    /// 电压类型
+    /// </summary>
+    public enum VoltageType
+    {
+        /// <summary>
+        /// 有效值
+        /// </summary>
+        Effective,
+
+        /// <summary>
+        /// 峰峰值
+        /// </summary>
+        Peak,
+    }
+}

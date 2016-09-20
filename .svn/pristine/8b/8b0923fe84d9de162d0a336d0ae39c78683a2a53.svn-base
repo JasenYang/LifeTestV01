@@ -1,0 +1,30 @@
+﻿<uc:BaseWindow x:Class="LifeTester.MainWindow"
+               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:uc="clr-namespace:LifeTester.UC"
+               xmlns:view="clr-namespace:LifeTester.View"
+               Style="{DynamicResource MainWindow}"
+               Title="MainWindow"
+               Height="1042"
+               Width="1000"
+               WindowStartupLocation="CenterScreen"
+               WindowState="Maximized"
+               Icon="/LifeTester;component/icon.ico">
+    <Grid Background="{DynamicResource ContentBackgroundBrush}">
+        <Grid x:Name="mainPageGrid" Visibility="{Binding MainPageVisibility}">
+            
+        </Grid>
+        <Grid x:Name="signalSettingPageGrid" Visibility="{Binding SignalSettingPageVisibility}">
+            
+        </Grid>
+        <Grid x:Name="resultAdjudgeSettingPageGrid" Visibility="{Binding ResultAdjudgeSettingPageVisibility}">
+
+        </Grid>
+        <Grid x:Name="controlPageGrid" Visibility="{Binding ControlPageVisibility}">
+
+        </Grid>
+        <Grid x:Name="resultPageGrid" Visibility="{Binding ResultPageVisibility}">
+
+        </Grid>
+    </Grid>
+</uc:BaseWindow>

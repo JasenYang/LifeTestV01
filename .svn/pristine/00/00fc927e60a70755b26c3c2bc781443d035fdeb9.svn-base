@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <configSections>
+    <sectionGroup name="COM">
+      <section name="A_1" type="System.Configuration.DictionarySectionHandler"/>
+      <section name="A_2" type="System.Configuration.DictionarySectionHandler"/>
+
+    </sectionGroup>
+  </configSections>
+  <appSettings>
+    <!--存储历史数据周期，单位毫秒-->
+    <add key="SaveHisInterval" value="10000"/>
+    <!--清理缓存周期，要大于存储历史数据周期，单位毫秒-->
+    <add key="ClearCacheInterval" value="100000"/>
+    <!--图像显示的点数量的上限-->
+    <add key="ChartPointUpLimit" value="1000"/>
+    <!--电压(电流和电阻以电压为参照)数值偏移量，对于超过偏移量的数据进行统计-->
+    <add key="ValueOffSet" value="0.20"/>
+    <!--设置第一个输出设备-->
+    <!--<add key="outputDeviceOne" value="ESI MAYA44 Ch12 (ESI MAYA44 Aud)"/>-->
+    <add key="outputDeviceOne" value="扬声器 (Realtek High Definition Au"/>
+    <!--设置第二个输出设备-->
+    <add key="outputDeviceTwo" value="ESI MAYA44 Ch34 (ESI MAYA44 Aud"/>
+    
+
+    <!--程序开启关闭写入指定内容到com 设置-->
+    <add key="BaudRate" value="9600"/>
+    <add key="DataBits" value="8"/>
+    <add key="PortName" value="COM1"/>
+    <add key="ReadBufferSize" value="4096"/>
+    <add key="ReadTimeout" value="1000"/>
+    <add key="StopBits" value="One"/>
+    <add key="WriteBufferSize" value="2048"/>
+    <add key="WriteTimeout" value="-1"/>
+  </appSettings>
+  <COM>
+    <!--添加规则:板卡为数字时，如1，则添加前缀"A_"；非数字时，不做处理。-->
+    <A_1>
+      <add key="BaudRate" value="9600"/>
+      <add key="DataBits" value="8"/>
+      <add key="PortName" value="COM1"/>
+      <add key="ReadBufferSize" value="4096"/>
+      <add key="ReadTimeout" value="1000"/>
+      <add key="StopBits" value="One"/>
+      <add key="WriteBufferSize" value="2048"/>
+      <add key="WriteTimeout" value="-1"/>
+    </A_1>
+    <A_2>
+      <add key="BaudRate" value="9600"/>
+      <add key="DataBits" value="8"/>
+      <add key="PortName" value="COM1"/>
+      <add key="ReadBufferSize" value="4096"/>
+      <add key="ReadTimeout" value="1000"/>
+      <add key="StopBits" value="One"/>
+      <add key="WriteBufferSize" value="2048"/>
+      <add key="WriteTimeout" value="-1"/>
+    </A_2>
+
+  </COM>
+
+</configuration>

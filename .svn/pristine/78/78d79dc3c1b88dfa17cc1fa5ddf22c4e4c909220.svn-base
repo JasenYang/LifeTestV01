@@ -1,0 +1,222 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using LifeTester.Util;
+using System.Collections;
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
+using NAudio.Wave.WaveStreams;
+
+namespace LifeTester.Model
+{
+    /// <summary>
+    /// 全局缓存
+    /// </summary>
+    public class Cache
+    {
+        private static Cache instance;
+
+        //板卡对应的串口信息
+        private Dictionary<Card, ISerial> dicSerialPorts;
+
+        private List<TesterContext> allContexts;
+
+        //public static LoopedSong lsOne = null;
+        //public static LoopedSong lsTwo = null;
+        ///// <summary>
+        ///// 扫描频率播放器
+        ///// </summary>
+        //public static IWavePlayer driverOut;
+        ///// <summary>
+        ///// 信号发生器
+        ///// </summary>
+        //public static SignalGenerator wg;
+
+        /// <summary>
+        /// 声卡输出一
+        /// </summary>
+        public static Guid DirectSoundOutDeviceOne { get; set; }
+
+        /// <summary>
+        /// 声卡输出二
+        /// </summary>
+        public static Guid DirectSoundOutDeviceTwo { get; set; }
+
+
+
+
+        /// <summary>
+        /// 扫描频率播放器一
+        /// </summary>
+        public static DirectSoundOut _dsOne = null;
+        /// <summary>
+        /// 扫描频率播放器二
+        /// </summary>
+        public static DirectSoundOut _dsTwo = null;
+        /// <summary>
+        /// 视频文件读取一
+        /// </summary>
+        public static AudioFileReader afrOne = null;
+        /// <summary>
+        /// 播放器一
+        /// </summary>
+        public static LoopStream loopOne = null;
+        /// <summary>
+        /// 视频文件读取二
+        /// </summary>
+        public static AudioFileReader afrTwo = null;
+        /// <summary>
+        /// 播放器二
+        /// </summary>
+        public static LoopStream loopTwo = null;
+        /// <summary>
+        /// 信号发生器一
+        /// </summary>
+        public static SignalGenerator wgOne = null;
+        /// <summary>
+        /// 信号发生器二
+        /// </summary>
+        public static SignalGenerator wgTwo = null;
+
+
+        /// <summary>
+        /// 获取所有上下文
+        /// </summary>
+        public List<TesterContext> Contexts
+        {
+            get { return allContexts; }
+        }
+
+        private List<Card> cards;
+
+        /// <summary>
+        /// 所有板卡(通道)信息
+        /// </summary>
+        public List<Card> Cards
+        {
+            get
+            {
+                return cards;
+            }
+        }
+
+        private TesterContext currentContext;
+
+        /// <summary>
+        /// 当前上下文
+        /// </summary>
+        public TesterContext CurrentContext
+        {
+            get
+            {
+                return currentContext;
+            }
+        }
+        /// <summary>
+        /// 全局缓存实例
+        /// </summary>
+        public static Cache Instance
+        {
+            get
+            {
+                if (instance == null)
+                    instance = new Cache();
+                return instance;
+            }
+        }
+
+        private List<ChannelHistory> historyStates;
+
+        /// <summary>
+        /// 获取通道状态
+        /// </summary>
+        public List<ChannelHistory> HistorySates
+        {
+            get
+            {
+                return historyStates; ;
+            }
+        }
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        Cache()
+        {
+            dicSerialPorts = new Dictionary<Card, ISerial>();
+            allContexts = new List<TesterContext>();
+            cards = new List<Card>();
+            historyStates = new List<ChannelHistory>();
+
+            InitialCards();
+        }
+
+        /// <summary>
+        /// 设置当前上下文
+        /// </summary>
+        /// <param name="cardNumber">板卡号</param>
+        public void SetCurrent(string cardNumber)
+        {
+            var card = cards.Find(c => c.Number.Equals(cardNumber));
+            //var 为弱类型，当不明确是什么类型的时候可以用 var表示
+            System.Diagnostics.Debug.Assert(card != null);
+
+            currentContext = allContexts.Find(c => c.CurrentCard.Number.Equals(cardNumber));
+
+            if (currentContext == null)
+            {
+                currentContext = new TesterContext(card, dicSerialPorts[card]);
+                allContexts.Add(currentContext);
+            }
+        }
+
+        /// <summary>
+        /// 从配置文件初始化所有板卡信息
+        /// </summary>
+        private void InitialCards()//初始化当前板卡
+        {
+            var serialConfigs = TesterConfig.Instance.SerialConfigs;
+
+            int channelCount = TesterConfig.Instance.ChannelCount;
+            if (channelCount == 0)
+                channelCount = 10;
+
+            System.Diagnostics.Debug.Assert(serialConfigs != null && serialConfigs.Count > 0);
+            foreach (var config in serialConfigs)
+            {
+                Card card = new Card
+                {
+                    Number = config.CardNumber,
+                    Duration = 10
+                };
+
+                for (int i = 0; i < channelCount; i++)
+                {
+                    Channel channel = new Channel
+                    {
+                        CardNumber = card.Number,
+                        Number = (i + 1).ToString(),
+                        Duration = 10
+                    };
+                    if (card.Channels == null)
+                        card.Channels = new List<Channel>(channelCount);
+                    card.Channels.Add(channel);
+                }
+
+                cards.Add(card);
+                ISerial serialPort = new SerialPortEx(config);
+                if (!dicSerialPorts.ContainsKey(card))
+                {
+                    dicSerialPorts.Add(card, serialPort);
+                }
+            }
+
+            cards.Sort(CompareCard);
+        }
+
+        public int CompareCard(Card source, Card target)
+        {
+            return source.Number.CompareTo(target.Number);
+        }
+    }
+}

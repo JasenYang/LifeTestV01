@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace LifeTester.Model
+{
+    /// <summary>
+    /// 表示测试状态
+    /// </summary>
+    public enum States
+    {
+        /// <summary>
+        /// 正常
+        /// </summary>
+        NORMAL = 0,
+        /// <summary>
+        /// 停止
+        /// </summary>
+        STOP = 1,
+        /// <summary>
+        /// 异常
+        /// </summary>
+        EXCEPTION = 2,
+        /// <summary>
+        /// 完成
+        /// </summary>
+        COMPLETE = 3,
+        /// <summary>
+        /// 选择
+        /// </summary>
+        CHECK = 4,
+        NOTCHECK=5
+    }
+}

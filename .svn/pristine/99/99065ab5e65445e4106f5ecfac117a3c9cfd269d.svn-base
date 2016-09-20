@@ -1,0 +1,211 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.IO;
+using System.Windows;
+using LifeTester.Model;
+using System.Timers;
+using System.Threading;
+using System.Collections;
+using System.Diagnostics;
+
+namespace LifeTester.Util
+{
+    /// <summary>
+    /// 存储历史数据的定时器类
+    /// </summary>
+    public class HistoryTimer 
+    {
+       
+        private static DateTime beginDataTime;//开始计时的时间，每次保存数据后更新这个时间值
+        public static System.Timers.Timer SaveHisTimer = new System.Timers.Timer();//设置为静态的，在转移数据到历史时停止执行
+        public static System.Timers.Timer ClearCacheTimer = new System.Timers.Timer();//清理历史数据的timer
+        private TimeSpan ClearCacheTimeSpan;//记录清理缓存的时间间隔
+        private static readonly object objClock = new object();//加锁
+        public static int ChartPointUpLimit { get; set; }//曲线中要显示到的点的上限
+        public static int CurrentPage { get; set; }//曲线当前页，从0开始，进行++ 或 ——
+        public static double ValueOffSet { get; set; }//电压，电流和电阻数值偏移量，对于超过偏移量的数据进行统计
+        public HistoryTimer()
+        {
+             AppConfigManager app = new AppConfigManager();
+             beginDataTime = DateTime.Now;
+            int iClearCacheInterval = Convert.ToInt32(app.GetAppValue("ClearCacheInterval"));
+            ClearCacheTimeSpan = new TimeSpan(0, 0, iClearCacheInterval/1000);
+            SaveHisTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent_SaveHistory);
+            ClearCacheTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent_ClearCache);    
+            int iSaveHisInterval = Convert.ToInt32(app.GetAppValue("SaveHisInterval"));
+            SaveHisTimer.Interval = iSaveHisInterval;    // 1秒 = 1000毫秒
+            ClearCacheTimer.Interval = iClearCacheInterval;
+            SaveHisTimer.Start();
+            ClearCacheTimer.Start();
+            ChartPointUpLimit = Convert.ToInt32(app.GetAppValue("ChartPointUpLimit"));
+            ValueOffSet = Convert.ToDouble(app.GetAppValue("ValueOffSet"));
+        }
+        /// <summary>
+        /// Timer的Elapsed事件处理程序
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="e"></param>
+        private void OnTimedEvent_SaveHistory(object source, ElapsedEventArgs e)
+        {
+            //by ldb 创建线程保存数据
+            Thread t1 = new Thread(new ThreadStart(SaveToHistory));
+            t1.IsBackground = true;
+            t1.Start();
+
+            //Debug.WriteLine("存储一次");
+        }
+        /// <summary>
+        /// Timer的Elapsed事件处理程序
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="e"></param>
+        private void OnTimedEvent_ClearCache(object source, ElapsedEventArgs e)
+        {
+            //by ldb 清理无用的缓存数据
+            DateTime dtime = DateTime.Now - ClearCacheTimeSpan;
+            Cache.Instance.HistorySates.RemoveAll(p => p.QTime.CompareTo(dtime) < 0);
+            //Debug.WriteLine(dtime.ToString());
+            //Debug.WriteLine(Cache.Instance.HistorySates.Count);
+        }
+        public void SaveToHistory()
+        {
+            lock (objClock)
+            {
+                List<ChannelHistory> list = Cache.Instance.HistorySates.FindAll(p=>p!=null&&p.QTime.CompareTo(beginDataTime)>-1);
+                DateTime dtTmp = beginDataTime;
+                beginDataTime = DateTime.Now;//重新计时
+                if (list.Count==0)
+                {
+                    return;
+                }
+                //根据通道的数量，查询对应的通道数据，然后再进行保存
+                foreach (Card item in Cache.Instance.Cards)
+                {
+                    string carNumber = item.Number;
+
+                    foreach (Channel channel in item.Channels)
+                    {
+                        string path = @"\" + carNumber + @"\" + channel.Number + @"\" ;
+                        string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".dat";
+                        ChannelHistory[] tmp = list.FindAll(p => p.CardNumber == carNumber && p.Number == channel.Number && p.QTime.CompareTo(dtTmp) > -1).ToArray();
+                        HistroyDBManager.SaveHistoryToFile(tmp,path, fileName);
+                    }
+                } 
+                
+               
+            } 
+        }
+        /// <summary>
+        /// 获取未保存的缓存数据
+        /// </summary>
+        /// <returns></returns>
+        public static List<ChannelHistory> GetUnSavedChannelHistory()
+        {
+           return Cache.Instance.HistorySates.FindAll(p => p.QTime.CompareTo(beginDataTime) > -1);
+        }
+    }
+    /// <summary>
+    /// 序列化和反序列化数据
+    /// </summary>
+    public static class HistroyDBManager
+    {
+        private static ReaderWriterLock _rwlock = new ReaderWriterLock();//定义一个读写锁
+        /// <summary>
+        /// 将指定的对象序列化到指定的文件
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="fullName">相对路径，含文件名</param>
+        /// <returns></returns>
+        public static bool SaveHistoryToFile(ChannelHistory[] obj,string path, string fileName)
+        {
+            bool bRet = false;
+            try
+            {
+               //使用一个 System.Int32 超时值获取写线程锁。
+                _rwlock.AcquireWriterLock(1000*60);
+                path = Directory.GetCurrentDirectory() +@"\Data"+ path;
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                path = path + fileName;
+                BinaryFormatter bf = new BinaryFormatter();
+
+                ////创建文件流
+                using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write))
+                {
+                    //将对象数组序列化并保存到指定的文件中 F\:1.txt
+                    bf.Serialize(fs, obj);
+                    fs.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+            finally
+            {
+                //减少写线程锁上的锁计数，释放写锁
+                _rwlock.ReleaseWriterLock();
+            }
+            
+            return bRet;
+        }
+        /// <summary>
+        /// 读取并反序列化
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="fullName"></param>
+        /// <returns></returns>
+        public static List<ChannelHistory> GetHistoryFromFile(string path, string filename)
+        {
+            try
+            {
+                //Debug.WriteLine("begin"+DateTime.Now.ToString("mmssfff"));
+                _rwlock.AcquireReaderLock(1000*60);
+                path = Directory.GetCurrentDirectory() +@"\Data"+ path + @"\" + filename;
+
+                BinaryFormatter bf = new BinaryFormatter();
+                List<ChannelHistory> list = new List<ChannelHistory>();
+                //反序列化
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+                {
+                    //进行反序列化(并且要用前面被序列化的对象的类型接受反序列化的结果)
+                    ChannelHistory[] tmp = (ChannelHistory[])bf.Deserialize(fs);
+                    do
+                    {
+                        list.AddRange(tmp);
+                        try
+                        {
+                            tmp = bf.Deserialize(fs) as ChannelHistory[];
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex.Message);
+                            tmp = null;
+                        }
+                       
+                    } while (tmp != null && tmp.Length > 0);
+                }
+                //Debug.WriteLine("end" + DateTime.Now.ToString("mmssfff"));
+                return list;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                LogHelper.WriteInfoLog("GetHistoryFromFile" + ex.Message);
+            }
+            finally
+            {
+                //减少锁计数,释放锁
+                _rwlock.ReleaseReaderLock();
+               
+            }
+            return null;
+            
+        }
+    }
+}

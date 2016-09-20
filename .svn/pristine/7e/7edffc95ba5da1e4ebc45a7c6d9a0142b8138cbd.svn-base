@@ -1,0 +1,60 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Windows;
+using LifeTester.Model;
+
+namespace LifeTester
+{
+    /// <summary>
+    /// Interaction logic for App.xaml
+    /// </summary>
+    public partial class App : Application
+    {
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+
+            if (Cache.lsOne != null)
+            {
+                Cache.lsOne.Dispose();
+            }
+            if (Cache.lsTwo != null)
+            {
+                Cache.lsTwo.Dispose();
+            }
+            try
+            {
+                ISerial serialPort = new SerialPortEx(TesterConfig.Instance.GetApplicationCom);
+                serialPort.Wirte("09", 1);
+                serialPort.Close();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Assert(false, "程序关闭时写入09失败");
+                throw;
+            }
+            if (Cache.Instance.Contexts != null && Cache.Instance.Contexts.Any())
+            {
+                try
+                {
+                    //关闭所有的串口
+                    Cache.Instance.Contexts.ForEach(c =>
+                        {
+                            c.Release();
+                        });
+
+
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex.ToString());
+                }
+            }
+
+
+
+        }
+    }
+}

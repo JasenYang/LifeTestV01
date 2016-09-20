@@ -1,0 +1,78 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace LifeTester.Model
+{
+    public static class CommonUtility
+    {
+        public static double HexToDouble(string strVal)
+        {
+            double ret = 0d;
+
+            string strHigh = strVal.Substring(0, 2);
+            string strLower = strVal.Substring(2);
+
+            int heigh = GetHexaDecimalValue(strHigh);
+            int lower = GetHexaDecimalValue(strLower);
+            if (heigh > 0)
+                heigh <<= 8;
+
+            ret = heigh + lower;
+
+            return ret;
+        }
+
+        /// <summary>
+        /// 十六进制换算为十进制
+        /// </summary>
+        /// <param name="strValue"></param>
+        /// <returns></returns>
+        public static int GetHexaDecimalValue(string strValue)
+        {
+            char[] nums = strValue.ToCharArray();
+            int total = 0;
+            try
+            {
+                for (int i = 0; i < nums.Length; i++)
+                {
+                    String strNum = nums[i].ToString().ToUpper();
+                    switch (strNum)
+                    {
+                        case "A":
+                            strNum = "10";
+                            break;
+                        case "B":
+                            strNum = "11";
+                            break;
+                        case "C":
+                            strNum = "12";
+                            break;
+                        case "D":
+                            strNum = "13";
+                            break;
+                        case "E":
+                            strNum = "14";
+                            break;
+                        case "F":
+                            strNum = "15";
+                            break;
+                        default:
+                            break;
+                    }
+                    double power = Math.Pow(16, Convert.ToDouble(nums.Length - i - 1));
+                    total += Convert.ToInt32(strNum) * Convert.ToInt32(power);
+                }
+
+            }
+            catch (System.Exception ex)
+            {
+                String strErorr = ex.ToString();
+                return 0;
+            }
+
+            return total;
+        }
+    }
+}

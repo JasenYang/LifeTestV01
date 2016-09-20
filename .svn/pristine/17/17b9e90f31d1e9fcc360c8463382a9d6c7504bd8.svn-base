@@ -1,0 +1,103 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using LifeTester.UC;
+using LifeTester.ViewModel;
+using LifeTester.Model;
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
+
+namespace LifeTester.View
+{
+    /// <summary>
+    /// 表示信号设置页面
+    /// </summary>
+    public partial class SignalSettingPage : BaseView
+    {
+        public SignalSettingPage()
+        {
+            InitializeComponent();
+            VM = new SignalSettingPageVM();
+            VM.AddCommands(this);
+            this.DataContext = VM;
+            cbxSweepDeviceOne.ItemsSource = DirectSoundOut.Devices;
+            cbxSweepDeviceOne.DisplayMemberPath = "Description";
+            cbxSweepDeviceOne.SelectedValuePath = "Guid";
+            cbxSweepDeviceOne.SelectedIndex = 0;
+            cbxSweepDeviceTwo.ItemsSource = DirectSoundOut.Devices;
+            cbxSweepDeviceTwo.DisplayMemberPath = "Description";
+            cbxSweepDeviceTwo.SelectedValuePath = "Guid";
+            cbxSweepDeviceTwo.SelectedIndex = 0;
+
+        }
+
+        private void btnBrowser_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void btnBrowser2_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void btnSweepStart_Click(object sender, RoutedEventArgs e)
+        {
+            //WaveOutEvent woe = new WaveOutEvent();
+            //woe.DeviceNumber = cbxSweepDevice.SelectedIndex;
+            //Cache.driverOut = woe;
+            //Cache.wg = new SignalGenerator();
+            //Cache.driverOut.Init(Cache.wg);
+            //Cache.wg.Type = SignalGeneratorType.Sweep;
+            //Cache.wg.Frequency = Convert.ToDouble(duStartfrequency.Text);
+            //Cache.wg.FrequencyEnd = Convert.ToDouble(duEndfrequency.Text);
+            //Cache.wg.SweepLengthSecs = Convert.ToDouble(duSweepLength.Text);
+            //Cache.driverOut.Play();
+        }
+
+        private void btnSweepEnd_Click(object sender, RoutedEventArgs e)
+        {
+            //if (Cache.driverOut != null)
+            //{
+            //    Cache.driverOut.Stop();
+            //}
+
+        }
+
+        private void ckSweepOne_Checked(object sender, RoutedEventArgs e)
+        {
+            if (ckSweepOne.IsChecked == true)
+            {
+
+                gbsweepOne.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                gbsweepOne.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void ckSweepTwo_Checked(object sender, RoutedEventArgs e)
+        {
+            if (ckSweepTwo.IsChecked == true)
+            {
+
+                gbsweepTwo.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                gbsweepTwo.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+}

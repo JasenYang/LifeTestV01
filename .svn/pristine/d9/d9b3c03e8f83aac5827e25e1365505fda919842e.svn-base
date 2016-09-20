@@ -1,0 +1,446 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Input;
+using LifeTester.Commands;
+using LifeTester.Model;
+
+namespace LifeTester.ViewModel
+{
+    /// <summary>
+    /// 提供信号设置页面的处理逻辑
+    /// </summary>
+    public class SignalSettingPageVM : BaseVM
+    {
+        private string signalSource;
+        /// <summary>
+        /// 获取或设置信号文件路径
+        /// </summary>
+        public string SignalSource
+        {
+            get { return signalSource; }
+            set
+            {
+                if (signalSource != value)
+                {
+                    signalSource = value;
+                    this.OnPropertyChanged(p => p.SignalSource);
+                    Cache.Instance.Cards.ForEach(c => c.SignalSource = value);
+                }
+            }
+        }
+
+        private string signalSource2;
+        public string SignalSource2
+        {
+            get { return signalSource2; }
+            set
+            {
+                if (signalSource2 != value)
+                {
+                    signalSource2 = value;
+                    this.OnPropertyChanged(p => p.SignalSource2);
+
+                }
+            }
+        }
+
+        private double duStartfrequencyOne = 10;//开始频率一
+
+        /// <summary>
+        /// 开始频率一
+        /// </summary>
+        public double DuStartfrequencyOne
+        {
+
+            get
+            {
+                return duStartfrequencyOne;
+            }
+            set
+            {
+                if (duStartfrequencyOne != value)
+                {
+                    duStartfrequencyOne =Convert.ToDouble(value);
+                    PlayerModel.StartfrequencyOne = value;
+                 //   this.OnPropertyChanged(p => p.DuStartfrequencyOne);
+                }
+            }
+        }
+
+
+        private double duStartfrequencyTwo = 10;//开始频率二
+        /// <summary>
+        /// 开始频率二
+        /// </summary>
+        public double DuStartfrequencyTwo
+        {
+
+            get
+            {
+                return duStartfrequencyTwo;
+            }
+            set
+            {
+                if (duStartfrequencyTwo != value)
+                {
+                    duStartfrequencyTwo = value;
+                    PlayerModel.StartfrequencyTwo = value;
+                   // this.OnPropertyChanged(p => p.DuStartfrequencyTwo);
+                }
+            }
+        }
+
+        private double duEndfrequencyOne = 100;//结束频率一
+        /// <summary>
+        /// 结束频率一
+        /// </summary>
+        public double DuEndfrequencyOne
+        {
+
+            get
+            {
+                return duEndfrequencyOne;
+            }
+            set
+            {
+                if (duEndfrequencyOne != value)
+                {
+                    duEndfrequencyOne = value;
+                    PlayerModel.EndfrequencyOne = value;
+                  //  this.OnPropertyChanged(p => p.DuEndfrequencyOne);
+                }
+            }
+        }
+        private double _duEndfrequencyTwo = 100;//结束频率二
+        /// <summary>
+        /// 结束频率二
+        /// </summary>
+        public double duEndfrequencyTwo
+        {
+            get
+            {
+                return _duEndfrequencyTwo;
+            }
+            set
+            {
+                if (_duEndfrequencyTwo != value)
+                {
+                    _duEndfrequencyTwo = value;
+                    PlayerModel.EndfrequencyTwo = value;
+                    this.OnPropertyChanged(p => p.duEndfrequencyTwo);
+                }
+            }
+        }
+        private double _duSweepLengthOne = 5; //扫描时长一
+        /// <summary>
+        /// 扫描时长一
+        /// </summary>
+        public double duSweepLengthOne
+        {
+            get
+            {
+                return _duSweepLengthOne;
+            }
+            set
+            {
+                if (_duSweepLengthOne != value)
+                {
+                    _duSweepLengthOne = value;
+                    PlayerModel.SweepLengthOne = value;
+                    this.OnPropertyChanged(p => p.duSweepLengthOne);
+                }
+            }
+        }
+        private double _duSweepLengthTwo = 5; //扫描时长二
+        /// <summary>
+        /// 扫描时长二
+        /// </summary>
+        public double duSweepLengthTwo
+        {
+            get
+            {
+                return _duSweepLengthTwo;
+            }
+            set
+            {
+                if (_duSweepLengthTwo != value)
+                {
+                    _duSweepLengthTwo = value;
+                    PlayerModel.SweepLengthTwo = value;
+                    this.OnPropertyChanged(p => p.duSweepLengthTwo);
+                }
+            }
+        }
+        private double voltageBoard1;//为本地的变量。
+        private double voltageBoard2;
+        /// <summary>
+        /// 获取或设置电压值
+        /// </summary>
+        public double Voltage1//Voltage1 要与xaml设计中的空间binding的参数名称一致！！
+        {
+            get
+            {
+                return voltageBoard1;
+
+            }
+            set
+            {
+                if (voltageBoard1 != value)
+                {
+                    voltageBoard1 = value;
+                    this.OnPropertyChanged(p => p.Voltage1);
+                    Cache.Instance.Cards.ForEach(c =>
+                        {
+                            if (c.Number == "1")
+                            {
+                                c.Voltage = value;
+                                c.Channels.ForEach(h => h.Voltage = value);
+                            }
+                        });
+
+
+
+                    //将当前的电压值作为事件中的参数抛出去。
+                    Subject.Notify(new Observer.NotifyEventArgs
+                    {
+                        MessageTypes = Observer.MessageTypes.UPDATE_SYSTEM_VOLTAGE,
+                        ParamObject = voltageBoard1
+                    });
+
+
+                }
+
+            }
+        }
+
+
+
+
+        public double Voltage2//Voltage1 要与xaml设计中的空间binding的参数名称一致！！
+        {
+            get
+            {
+                return voltageBoard2;
+            }
+            set
+            {
+                if (voltageBoard2 != value)
+                {
+                    voltageBoard2 = value;
+                    this.OnPropertyChanged(p => p.Voltage2);
+                    Cache.Instance.Cards.ForEach(c =>
+                    {
+                        if (c.Number == "2")
+                        {
+                            c.Voltage = value;
+                            c.Channels.ForEach(h => h.Voltage = value);
+                        }
+                    });
+
+                    //将当前的电压值作为事件中的参数抛出去。
+                    Subject.Notify(new Observer.NotifyEventArgs
+                    {
+                        MessageTypes = Observer.MessageTypes.UPDATE_SYSTEM_VOLTAGEBOARD2,
+                        ParamObject = voltageBoard2
+                    });
+
+
+                }
+
+            }
+        }
+
+
+        private bool? validValueIsChecked = true;
+        /// <summary>
+        /// 获取或设置一个值，该值标识电压类型有效值是否选中
+        /// </summary>
+        public bool? ValidValueIsChecked
+        {
+            get { return validValueIsChecked; }
+            set
+            {
+                if (validValueIsChecked != value)
+                {
+                    validValueIsChecked = value;
+                    this.OnPropertyChanged(p => p.ValidValueIsChecked);
+                    SetVoltageType(VoltageType.Effective, value.HasValue ? value.Value : false);
+                }
+            }
+        }
+
+        private bool? ppValueIsChecked = false;
+        /// <summary>
+        /// 获取或设置一个值，该值标识电压类型峰峰值是否选中
+        /// </summary>
+        public bool? PPValueIsChecked
+        {
+            get { return ppValueIsChecked; }
+            set
+            {
+                if (ppValueIsChecked != value)
+                {
+                    ppValueIsChecked = value;
+                    this.OnPropertyChanged(p => p.PPValueIsChecked);
+                    SetVoltageType(VoltageType.Peak, value.HasValue ? value.Value : false);
+                }
+            }
+        }
+
+        private int duration;
+        /// <summary>
+        /// 获取或设置测试时间长度
+        /// </summary>
+        public int Duration
+        {
+            get { return duration; }
+            set
+            {
+                if (duration != value)
+                {
+                    duration = value;
+                    this.OnPropertyChanged(p => p.Duration);
+                    Cache.Instance.Cards.ForEach(c =>
+                        {
+                            c.Duration = value * 60;
+                            c.Channels.ForEach(h => h.Duration = value * 60);
+                        });
+
+                    Subject.Notify(new Observer.NotifyEventArgs
+                    {
+                        MessageTypes = Observer.MessageTypes.UPDATE_SYSTEM_TIME,
+                        ParamObject = duration
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// 添加命令绑定
+        /// </summary>
+        /// <param name="ele">测试控制窗口对象</param>
+        public override void AddCommands(UIElement ele)
+        {
+            ele.CommandBindings.Add(new CommandBinding(SignalSettingPageCommands.SignalBrowserCommand, OnSignalBrowser));//图形设计界面中只是指定了按钮对应绑定的指令，而这个则是将指令绑定到具体的操作上
+            ele.CommandBindings.Add(new CommandBinding(SignalSettingPageCommands.SignalBrowserCommand2, OnSignalBrowser2));
+            //ele.CommandBindings.Add(new CommandBinding(SignalSettingPageCommands.clickSweepStart, clickSweepStart));
+            //ele.CommandBindings.Add(new CommandBinding(SignalSettingPageCommands.clickSweepEnd, clickSweepEnd));
+        }
+
+        /// <summary>
+        /// 选择信号文件按钮点击触发的事件
+        /// </summary>
+        /// <param name="sender">命令绑定的对象</param>
+        /// <param name="e">命令相关参数</param>
+        public void OnSignalBrowser(object sender, ExecutedRoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog()//打开信号选择界面！！
+            {
+                Filter = "音频文件(*.mp3,*.wma,*.wav,*.mod,*.ra,*.cd,*md)|*.mp3;*.wma;*.wav;*.mod;*.ra;*.cd;*.md|所有文件(*.*)|*.*"
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                SignalSource = dialog.FileName;
+                Subject.Notify(new Observer.NotifyEventArgs
+                {
+                    MessageTypes = Observer.MessageTypes.UPDATE_SIGNAL_SOURCE,
+                    ParamObject = SignalSource
+                });
+            }
+        }
+
+        public void OnSignalBrowser2(object sender, ExecutedRoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog()
+            {
+                Filter = "音频文件(*.mp3,*.wma,*.wav,*.mod,*.ra,*.cd,*md)|*.mp3;*.wma;*.wav;*.mod;*.ra;*.cd;*.md|所有文件(*.*)|*.*"
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                SignalSource2 = dialog.FileName;
+                Subject.Notify(new Observer.NotifyEventArgs
+                {
+                    MessageTypes = Observer.MessageTypes.UPDATE_SIGNAL_SOURCE2,
+                    ParamObject = SignalSource2
+
+                });
+            }
+        }
+
+        public override void Init()
+        {
+            if (Inited)
+            {
+                return;
+            }
+            base.Init();
+        }
+
+        /// <summary>
+        /// 设置电压类型
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="value"></param>
+        private void SetVoltageType(VoltageType type, bool value)
+        {
+            VoltageType setType = VoltageType.Effective;
+            switch (type)
+            {
+                case VoltageType.Effective:
+                    setType = value ? VoltageType.Effective : VoltageType.Peak;
+                    break;
+                case VoltageType.Peak:
+                    setType = value ? VoltageType.Peak : VoltageType.Effective;
+                    break;
+            }
+
+            Cache.Instance.Cards.ForEach(c =>
+                {
+                    c.VoltageType = setType;
+                    c.Channels.ForEach(h => h.VoltageType = setType);
+                });
+        }
+
+
+
+
+        //private double _duSweepLength;
+        ///// <summary>
+        ///// 获取或设置扫描时长
+        ///// </summary>
+        //public double duSweepLength
+        //{
+        //    get { return _duSweepLength; }
+        //    set
+        //    {
+        //        if (_duSweepLength != value)
+        //        {
+        //            _duSweepLength = value;
+        //            this.OnPropertyChanged(p => p._duSweepLength);
+        //        }
+        //    }
+        //}
+
+        ///// <summary>
+        ///// 开启扫描
+        ///// </summary>
+        ///// <param name="sender">命令绑定的对象</param>
+        ///// <param name="e">命令相关的参数</param>
+        //public void clickSweepStart(object sender, ExecutedRoutedEventArgs e)
+        //{
+
+        //}
+        ///// <summary>
+        ///// 结束扫描
+        ///// </summary>
+        ///// <param name="sender">命令绑定的对象</param>
+        ///// <param name="e">命令相关的参数</param>
+        //public void clickSweepEnd(object sender, ExecutedRoutedEventArgs e)
+        //{
+
+        //}
+    }
+}

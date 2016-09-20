@@ -1,0 +1,256 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO.Ports;
+using System.Threading;
+
+namespace LifeTester.Model
+{
+    /// <summary>
+    /// 串口读写接口
+    /// </summary>
+    public interface ISerial
+    {
+        /// <summary>
+        /// 写入串口
+        /// </summary>
+        void Wirte(string cmd);
+        /// <summary>
+        /// 写入串口
+        /// </summary>
+        void Wirte(string cmd, int _count);
+
+        string ReadLine();
+
+        int Read(byte[] buffer, int offset, int count);
+
+        void Open();
+
+        void Close();
+
+        bool IsOpen { get; }
+
+        int BytesToRead { get; }
+
+        string ReceivedData { get; }
+    }
+
+    /// <summary>
+    /// 串口
+    /// </summary>
+    public class SerialPortEx : ISerial
+    {
+
+        private SerialPort serialPort;
+
+        /// <summary>
+        /// 读取字节长度
+        /// </summary>
+        public int BytesToRead
+        {
+            get
+            {
+                return serialPort.BytesToRead;
+            }
+        }
+
+        public bool IsOpen
+        {
+            get
+            {
+                return serialPort.IsOpen;
+            }
+        }
+
+        private string receivedData;
+
+        public string ReceivedData
+        {
+            get
+            {
+                return receivedData;
+            }
+        }
+
+        public SerialPortEx(SerialConfig config)
+        {
+            serialPort = new SerialPort()
+            {
+                Parity = config.Parity,
+                ReadBufferSize = config.ReadBufferSize,
+                WriteBufferSize = config.WriteBufferSize,
+                ReadTimeout = config.ReadTimeout,
+                WriteTimeout = config.WriteTimeout,
+                PortName = config.PortName,
+                BaudRate = config.BaudRate,
+                DataBits = config.DataBits,
+                StopBits = config.StopBits
+            };
+
+            //receivedDatas = new Queue<string>();
+            serialPort.ErrorReceived += new SerialErrorReceivedEventHandler(serialPort_ErrorReceived);
+            serialPort.DataReceived += new SerialDataReceivedEventHandler(serialPort_DataReceived);
+        }
+
+        void serialPort_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
+        {
+            LogHelper.WriteInfoLog("serialPort_ErrorReceived：接受数据失败");
+        }
+
+        /// <summary>
+        /// 接收数据事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void serialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            ReceiveData();
+        }
+
+        private void ReceiveData()
+        {
+
+
+
+            Thread.Sleep(1000);//DSP回传数据给PC的时候，因为PC接收的时候会出现不连续接收，所以有可能会将一组数据分成两组接收，所以需要加入等待！！
+            try
+            {
+                receivedData = string.Empty;
+                int n = this.serialPort.BytesToRead;
+                if (n > 0)
+                {
+                    byte[] buf = new byte[n];
+                    int count = this.serialPort.Read(buf, 0, n);//从串口得到buf的byte数组；
+                    for (int i = 0; i < buf.Length; i++)//将得到的byte数组转化成string
+                    {
+                        receivedData += buf[i].ToString("X2");
+                    }
+
+
+                    //receivedData = Encoding.ASCII.GetString(buf);
+                    //receivedDatas.Enqueue(receivedData);
+
+                }
+                // Thread.Sleep(1);
+                //  LogHelper.WriteInfoLog("DSP回传数据给PC的数据："+ receivedData);
+                Thread.Sleep(1);
+              //  LogHelper.WriteInfoLog("DSP回传数据给PC的数据："+ receivedData);
+
+            }
+            catch (TimeoutException ex)
+            {
+
+                LogHelper.WriteInfoLog("SerialPortEx-ReceiveData()" + ex.Message);
+               
+                LogHelper.WriteInfoLog("SerialPortEx-ReceiveData()" + ex.Message);
+                throw ex;
+            }
+
+        }
+
+        public void Wirte(string cmd)
+        {
+            //Cache._mu.WaitOne();
+            try
+            {
+                cmd = cmd.Replace(" ", ""); //将cmd的string 转化成串口要发送的byte[]数组！
+                if ((cmd.Length % 2) != 0)
+                {
+                    cmd += "";
+                }
+                byte[] cmdBytes = new byte[cmd.Length / 2];
+                for (int i = 0; i < cmdBytes.Length; i++)
+                {
+                    cmdBytes[i] = Convert.ToByte(cmd.Substring(i * 2, 2), 16);
+                }
+
+                if (!IsOpen)
+                    Open();
+
+                serialPort.DiscardInBuffer();
+                serialPort.DiscardOutBuffer();
+                Thread.Sleep(200);//by ldb 休眠一下，连续发送出异常
+                serialPort.Write(cmdBytes, 0, 14);//发送完毕后，等一下，等串口将所有数据上传完毕再启动其他指令的检测。
+                serialPort.DiscardInBuffer();
+                Thread.Sleep(40);
+            }
+            catch (Exception ex)
+            {
+
+                LogHelper.WriteInfoLog("写入数据失败" + ex.Message);
+            }
+            //finally
+            //{
+
+            //    Cache._mu.ReleaseMutex();
+            //}
+
+
+            serialPort.DiscardInBuffer();
+            serialPort.DiscardOutBuffer();
+            Thread.Sleep(200);//by ldb 休眠一下，连续发送出异常
+            serialPort.Write(cmdBytes,0,14);//发送完毕后，等一下，等串口将所有数据上传完毕再启动其他指令的检测。
+            serialPort.DiscardInBuffer();
+            Thread.Sleep(40);
+            
+        }
+
+        /// <summary>
+        /// 通过串口发送内容
+        /// </summary>
+        /// <param name="cmd"></param>
+        public void Wirte(string cmd, int _count)
+        {
+            cmd = cmd.Replace(" ", ""); //将cmd的string 转化成串口要发送的byte[]数组！
+            if ((cmd.Length % 2) != 0)
+            {
+                cmd += "";
+            }
+            byte[] cmdBytes = new byte[cmd.Length / 2];
+            for (int i = 0; i < cmdBytes.Length; i++)
+            {
+                cmdBytes[i] = Convert.ToByte(cmd.Substring(i * 2, 2), 16);
+            }
+
+            if (!IsOpen)
+                Open();
+
+            serialPort.DiscardInBuffer();
+            serialPort.DiscardOutBuffer();
+            serialPort.Write(cmdBytes, 0, _count);//发送完毕后，等一下，等串口将所有数据上传完毕再启动其他指令的检测。
+            serialPort.DiscardInBuffer();
+            Thread.Sleep(40);
+
+        }
+
+        public string ReadLine()
+        {
+            return serialPort.ReadLine();
+        }
+
+        public int Read(byte[] buffer, int offset, int count)
+        {
+            try
+            {
+                return serialPort.Read(buffer, offset, count);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        public void Open()
+        {
+            if (!IsOpen)
+                serialPort.Open();
+        }
+
+        public void Close()
+        {
+            if (serialPort.IsOpen)
+                serialPort.Close();
+        }
+    }
+}

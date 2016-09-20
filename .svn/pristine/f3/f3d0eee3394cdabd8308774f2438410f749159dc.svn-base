@@ -1,0 +1,30 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Data;
+using LifeTester.Model;
+using System.Windows.Media;
+
+namespace LifeTester.Converter
+{
+    /// <summary>
+    /// 提供将进度条进度值转换为百分比的转换器
+    /// </summary>
+    public class ProgressValueConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (value == null || string.IsNullOrEmpty(value.ToString()))
+            {
+                return "0%";
+            }
+            return Math.Round((double)value, 1) + "%";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

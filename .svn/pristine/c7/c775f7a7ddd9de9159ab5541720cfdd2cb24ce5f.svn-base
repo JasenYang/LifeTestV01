@@ -1,0 +1,161 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Media;
+using WMPLib;
+using System.Runtime.InteropServices;//用来引入dll 文件！
+using System.Diagnostics;// 用来引入process类
+using System.Windows.Forms;
+using System.IO;
+using NAudio.Wave;
+using System.Configuration;
+using NAudio.Wave.WaveStreams;
+using NAudio.Wave.SampleProviders;
+
+namespace LifeTester.Model
+{
+
+
+    public class MediaPlayer
+    {
+
+
+
+        //private Process p;
+        //private const int APPCOMMAND_VOLUME_MUTE = 0x80000;
+        //private const int APPCOMMAND_VOLUME_UP = 0x0a0000;
+        //private const int APPCOMMAND_VOLUME_DOWN = 0x090000;
+        //private const int WM_APPCOMMAND = 0x319;
+
+        //[DllImport("user32.dll")]
+        ////[DllImport("winmm.dll")]// 该句只能放在方法的上面！不能放在文件或者类的开头的位置。
+        //public static extern IntPtr SendMessageW(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr IParam);
+
+        //public void SetVol()
+        //{
+        //    p = Process.GetCurrentProcess();
+        //    for (int i = 0; i < 2000; i++)
+        //    {
+        //        SendMessageW(p.Handle,WM_APPCOMMAND,p.Handle,(IntPtr)APPCOMMAND_VOLUME_UP);
+        //    }
+        //    SendMessageW(p.Handle, WM_APPCOMMAND, p.Handle, (IntPtr)APPCOMMAND_VOLUME_MUTE);
+        //}
+
+        // private Process p;
+
+        // const uint WM_APPCOMMAND = 0x319;
+        // const uint APPCOMMAND_VOLUME_UP = 0x0a;
+        // const uint APPCOMMAND_VOLUME_DOWN = 0x09;
+        // const uint APPCOMMAND_VOLUME_MUTE = 0x08;
+
+        //[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        // static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, uint wParam, uint lParam);
+        // public void VolumeUp(){
+        //     SendMessage(this.p.Handle, WM_APPCOMMAND, 0x30292, APPCOMMAND_VOLUME_UP * 0x10000);
+        // }
+
+        // public void SetVol()
+        // {
+        //     p = Process.GetCurrentProcess();
+        //     for (int i = 0; i < 500; i++)
+        //     {
+        //         VolumeUp();
+        //     }
+        // }
+
+
+
+
+        public WMPLib.WindowsMediaPlayer myMedia2 = new WindowsMediaPlayer();
+        public WMPLib.WindowsMediaPlayer myMedia1 = new WindowsMediaPlayer();
+
+        public void myMedia1Play1(bool start, string location, int volume)
+        {
+            if (start.Equals(true))
+            {
+                float _vol = float.Parse(volume.ToString());
+                if (Cache._dsOne != null)
+                {
+
+                    Cache.wgOne.Gain = (float)(_vol / 1000);
+                    Cache._dsOne.Play();
+                }
+                else
+                {
+                    Cache.afrOne = new AudioFileReader(location);
+                    Cache.loopOne = new LoopStream(Cache.afrOne);
+                    SampleChannel sclOne = new SampleChannel(Cache.loopOne, true);
+
+                    sclOne.Volume = _vol / 1000;
+                    Cache._dsOne = new DirectSoundOut(Cache.DirectSoundOutDeviceOne);
+                    Cache._dsOne.Init(new MeteringSampleProvider(sclOne));
+                    Cache._dsOne.Play();
+                }
+
+                //myMedia1.controls.currentPosition = 1;
+                //myMedia1.settings.setMode("loop", true);
+
+                //myMedia1.URL = location;
+                //myMedia1.settings.volume = volume;
+                //myMedia1.controls.play();
+
+            }
+            if (start.Equals(false))
+            {
+                //myMedia1.controls.stop();
+                Cache._dsOne.Stop();
+
+            }
+        }
+
+        public void myMedia1Play2(bool start, string location, int volume)
+        {
+            if (start.Equals(true))
+            {
+                float _vol = float.Parse(volume.ToString());
+                if (Cache._dsTwo != null)
+                {
+                   
+
+                    //DirectSoundOut woe = new DirectSoundOut(Cache.DirectSoundOutDeviceOne);
+                    //Cache._dsOne = woe;
+                    //Cache.wgOne = new SignalGenerator();
+                    //Cache._dsOne.Init(Cache.wgOne);
+                    //Cache.wgOne.Type = SignalGeneratorType.Sweep;
+                    //Cache.wgOne.Frequency = Convert.ToDouble(duStartfrequencyOne.Text);
+                    //Cache.wgOne.FrequencyEnd = Convert.ToDouble(duEndfrequencyOne.Text);
+                    //Cache.wgOne.SweepLengthSecs = Convert.ToDouble(duSweepLengthOne.Text);
+                    Cache.wgTwo.Gain = _vol / 1000;
+                    Cache._dsTwo.Play();
+
+
+
+
+                }
+                else
+                {
+                    //myMedia2.settings.setMode("loop", true);
+                    //myMedia2.URL = location;
+                    //myMedia2.settings.volume = volume;
+                    //myMedia2.controls.play();
+                    Cache.afrTwo = new AudioFileReader(location);
+                    Cache.loopTwo = new LoopStream(Cache.afrTwo);
+                    SampleChannel sclTwo = new SampleChannel(Cache.loopTwo, true);
+                    sclTwo.Volume = _vol / 1000;
+                    Cache._dsTwo = new DirectSoundOut(Cache.DirectSoundOutDeviceTwo);
+                    Cache._dsTwo.Init(new MeteringSampleProvider(sclTwo));
+                    Cache._dsTwo.Play();
+                }
+            }
+            if (start.Equals(false))
+            {
+                // myMedia2.controls.stop();
+                Cache._dsTwo.Stop();
+            }
+        }
+
+
+
+    }
+}

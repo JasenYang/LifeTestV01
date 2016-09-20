@@ -1,0 +1,377 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Media;
+
+namespace LifeTester.Model
+{
+    /// <summary>
+    /// 命令接口
+    /// </summary>
+    /// 
+    public interface ICommand
+    {
+        /// <summary>
+        /// 启动所有通道
+        /// </summary>
+        /// <returns></returns>
+        bool Start(string channelNumber = null);
+
+        /// <summary>
+        /// 停止所有通道
+        /// </summary>
+        /// <returns></returns>
+        bool Stop();
+
+        /// <summary>
+        /// 暂停所有通道
+        /// </summary>
+        /// <returns></returns>
+        bool Pause();
+
+        /// <summary>
+        /// 暂停某一个通道
+        /// </summary>
+        /// <param name="channelNumber">通道号</param>
+        /// <returns></returns>
+        bool Pause(string channelNumber);
+
+        /// <summary>
+        /// 继续所有通道
+        /// </summary>
+        /// <returns></returns>
+        bool Continue();
+
+        /// <summary>
+        /// 继续某一个通道
+        /// </summary>
+        /// <param name="channelNumber">通道号</param>
+        /// <returns></returns>
+        bool Continue(string channelNumber);
+    }
+
+    /// <summary>
+    /// 启动、暂停、停止、继续操作
+    /// </summary>
+    /// 
+
+
+
+    public class Command : ICommand
+    {
+        private ISerial serial;
+
+        System.Media.SoundPlayer myMedia1 = new System.Media.SoundPlayer();
+
+
+        public Command(ISerial serial)
+        {
+            this.serial = serial;
+        }
+
+        public bool Start(string channelNumber = null)//启动指令
+        {
+            try
+            {
+                LogHelper.WriteInfoLog(string.Format("开始，下发指令"));
+                Instruction ins = SetStartInstruction(channelNumber);//设置启动指令
+                serial.Wirte(ins.ToString());//下发控制指令
+
+                bool ret = OperSuccess(ins, CommandState.Start);//下发控制指令后，系统进入检测状态，因为底层DSP将会恢复
+                if (ret)
+                {
+                    Cache.Instance.CurrentContext.CurrentCard.InitalActualTime();
+                    Cache.Instance.CurrentContext.CurrentCard.Start();
+                }
+
+                //SignalSource
+                myMedia1.SoundLocation = @"";
+
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteInfoLog("开始，下发指令失败" + ex.Message);
+                return false;
+            }
+
+
+
+        }
+
+        public bool Stop()
+        {
+            try
+            {
+                LogHelper.WriteInfoLog(string.Format("停止，下发指令"));
+                if (!Cache.Instance.CurrentContext.CurrentCard.IsStart)
+                {
+                    //return false;
+                    return true;
+                }
+                Instruction ins = SetStopInstruction();
+                serial.Wirte(ins.ToString());
+                bool ret = OperSuccess(ins, CommandState.Stop);
+                if (ret)
+                {
+                    Cache.Instance.CurrentContext.CurrentCard.Stop();
+                }
+
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteInfoLog("停止，下发指令失败" + ex.Message);
+                return false;
+            }
+        }
+
+        public bool Pause()
+        {
+            try
+            {
+                LogHelper.WriteInfoLog(string.Format("暂停，下发指令"));
+                Instruction ins = SetStopInstruction();
+                serial.Wirte(ins.ToString());
+                bool ret = OperSuccess(ins, CommandState.Pause);
+                if (ret)
+                {
+                    Cache.Instance.CurrentContext.CurrentCard.Pause();
+                }
+
+                return ret;
+            }
+            catch (Exception ex)
+            {
+
+                LogHelper.WriteInfoLog("暂停，下发指令失败" + ex.Message);
+                return false;
+            }
+
+        }
+
+        public bool Pause(string channelNumber)
+        {
+            try
+            {
+                LogHelper.WriteInfoLog(string.Format("暂停{0}通道，下发指令", channelNumber));
+                Instruction ins = SetStopInstruction(channelNumber);
+                serial.Wirte(ins.ToString());
+                bool ret = OperSuccess(ins, CommandState.Pause);
+                if (ret)
+                {
+                    Cache.Instance.CurrentContext.CurrentCard.Pause(channelNumber);
+                }
+                return ret;
+            }
+            catch (Exception ex)
+            {
+
+                LogHelper.WriteInfoLog(string.Format("暂停{0}通道，下发指令失败:{1}", channelNumber, ex.Message));
+                return false;
+            }
+
+        }
+
+        public bool Continue()
+        {
+            try
+            {
+                LogHelper.WriteInfoLog(string.Format("重新启动下发指令"));
+                Instruction ins = SetStartInstruction();
+                serial.Wirte(ins.ToString());
+                bool ret = OperSuccess(ins, CommandState.Continue);
+                if (ret)
+                {
+                    Cache.Instance.CurrentContext.CurrentCard.Continue();
+                }
+                return ret;
+
+            }
+            catch (Exception ex)
+            {
+
+                LogHelper.WriteInfoLog(string.Format("重新启动下发指令指令失败:{0}", ex.Message));
+                return false;
+            }
+
+        }
+
+        public bool Continue(string channelNumber)
+        {
+            try
+            {
+                LogHelper.WriteInfoLog(string.Format("重新启动{0}通道，下发指令", channelNumber));
+                Instruction ins = SetStartInstruction(channelNumber);
+                serial.Wirte(ins.ToString());
+                bool ret = OperSuccess(ins, CommandState.Continue);
+                if (ret)
+                {
+                    Cache.Instance.CurrentContext.CurrentCard.Continue(channelNumber);
+                }
+                return ret;
+            }
+            catch (Exception ex)
+            {
+
+                LogHelper.WriteInfoLog(string.Format("重新启动{0}通道,发送指令失败:{1}", channelNumber, ex.Message));
+                return false;
+            }
+
+        }
+
+        private string GetReplyMsg(CommandState state)
+        {
+
+            int byteCount = serial.BytesToRead;
+
+            string strReply = string.Empty;
+            if (byteCount > 0)
+            {
+                byte[] readBuffer = new byte[byteCount];
+                try
+                {
+                    int count = serial.Read(readBuffer, 0, byteCount);
+                    strReply = Encoding.ASCII.GetString(readBuffer, 0, count);
+
+                    Thread.Sleep(100);
+                }
+                catch (TimeoutException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex.ToString());
+                }
+            }
+
+            return strReply;
+        }
+
+        /// <summary>
+        /// 发送控制命令时，比较回复数据是否与发送数据一致
+        /// </summary>
+        /// <param name="ins"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        private bool OperSuccess(Instruction ins, CommandState state)
+        {
+            bool result = true;
+            int i = 0;
+
+            Thread.Sleep(700);
+            do
+            {
+                if (ins.ToString() != serial.ReceivedData)//发送的控制字和返回的控制字不同
+                {
+                    result = false;//操作失败//发送的控制字和返回的控制字不同
+                    LogHelper.WriteInfoLog(string.Format("尝试{0}次,发送的控制字{1}和返回的控制字{2}不同", i, ins.ToString(), serial.ReceivedData));
+                }
+                else
+                {
+                    result = true;
+                    LogHelper.WriteInfoLog(string.Format("尝试{0}次,发送的控制字{1}和返回的控制字{2}匹配相同", i, ins.ToString(), serial.ReceivedData));
+                    i = 3;
+                }
+                i++;
+
+            } while (i < 3);
+
+
+            //if (ins.ToString() != serial.ReceivedData)//发送的控制字和返回的控制字不同
+            //{
+            //    result = false;//操作失败//发送的控制字和返回的控制字不同
+            //    LogHelper.WriteInfoLog(string.Format("发送的控制字{0}和返回的控制字{1}不同", ins.ToString(), serial.ReceivedData));
+            //}
+            // LogHelper.WriteInfoLog("发送的控制字和返回的控制字相同");
+            return result;
+        }
+
+        /// <summary>
+        /// 设置启动控制指令
+        /// </summary>
+        /// <returns></returns>
+        private Instruction SetStartInstruction(string channelNumber = null)
+        {
+            try
+            {
+                Instruction ins = new Instruction { CardNumber = Cache.Instance.CurrentContext.CurrentCard.Number };//创建启动指令
+                StringBuilder sbCmd = new StringBuilder();
+                Cache.Instance.CurrentContext.CurrentCard.Channels.ForEach(h =>
+                {
+                    if (channelNumber == null || h.Number == channelNumber)
+                    {
+                        if (channelNumber == null)
+                        {
+                            sbCmd.Append(Instruction.START_CHANNEL);
+                        }
+                        else if (h.State == States.STOP)
+                        {
+                            sbCmd.Append(Instruction.START_CHANNEL);
+                        }
+                        else if (h.State == States.NORMAL)
+                        {
+                            sbCmd.Append(Instruction.STOP_CHANNEL);
+                        }
+
+                    }
+
+                    else
+                    {
+                        sbCmd.Append(h.State == States.NORMAL ? Instruction.START_CHANNEL : Instruction.STOP_CHANNEL);
+                    }
+                });//遍历10个通道的状态，启动还是停止，这样可以将10个通道的控制领命组合出来
+                ins.Cmd = sbCmd.ToString();
+                LogHelper.WriteInfoLog("启动:" + channelNumber + "通道|启动指令：" + ins);
+                return ins;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteInfoLog("设置启动控制指令失败：" + ex.Message);
+                return null;
+            }
+
+        }
+
+        /// <summary>
+        /// 设置停止控制指令
+        /// </summary>
+        /// <returns></returns>
+        private Instruction SetStopInstruction(string channelNumber = null)
+        {
+            try
+            {
+                Instruction ins = new Instruction { CardNumber = Cache.Instance.CurrentContext.CurrentCard.Number };//生成停止用的控制字
+                StringBuilder sbCmd = new StringBuilder();
+                Cache.Instance.CurrentContext.CurrentCard.Channels.ForEach(h =>
+                {
+                    if (channelNumber == null || h.Number == channelNumber)
+                        sbCmd.Append(Instruction.STOP_CHANNEL);
+                    else
+                    {
+                        sbCmd.Append(h.State == States.NORMAL ? Instruction.START_CHANNEL : Instruction.STOP_CHANNEL);
+                    }
+                });
+                ins.Cmd = sbCmd.ToString();
+                LogHelper.WriteInfoLog("停止:" + channelNumber + "通道|停止指令：" + ins);
+                return ins;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteInfoLog("设置停止控制指令失败：" + ex.Message);
+                return null;
+            }
+
+        }
+    }
+
+    /// <summary>
+    /// 操作状态
+    /// </summary>
+    public enum CommandState
+    {
+        Start,
+        Stop,
+        Pause,
+        Continue,
+    }
+}

@@ -1,0 +1,31 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace LifeTester.Observer
+{
+    /// <summary>
+    /// 表示通知消息类型 update: 2016.06.20 黄建华 增加 UPDATE_DZ_SKP1\UPDATE_DZ_SKP2
+    /// </summary>
+    public enum MessageTypes
+    {
+        /// <summary>
+        /// 更新信号来源文件
+        /// </summary>
+        UPDATE_SIGNAL_SOURCE,
+        
+
+        UPDATE_SYSTEM_VOLTAGE,
+        UPDATE_SYSTEM_TIME,
+        UPDATE_SYSTEM_TIME2,
+        UPDATE_SYSTEM_VOLTAGEBOARD2,
+
+        UPDATE_SIGNAL_SOURCE2,
+            UPDATE_DZ_SKP1,
+        UPDATE_DZ_SKP2,
+        UPDATE_ZX_SKP1,
+        UPDATE_ZX_SKP2
+
+    }
+}

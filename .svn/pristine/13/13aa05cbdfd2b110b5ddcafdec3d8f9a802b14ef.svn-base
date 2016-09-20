@@ -1,0 +1,341 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Media;
+using LifeTester.Util;
+
+namespace LifeTester.Model
+{
+    /// <summary>
+    /// 表示一个通道
+    /// </summary>
+    public class Channel : NotifyPropertyChanged
+    {
+        private string cardNumber;
+
+        private AutoTimer timer;
+
+        public double[] VoltageTemp = new double[5];
+        public double[] VoltageLowTemp = new double[5];
+        public double[] ElectricityTemp = new double[5];
+        public double[] ohmTemp = new double[5];
+        public DateTime QTime { get; set; }//by ldb 定义时间戳
+        public Channel()
+        {
+            QTime = DateTime.Now;//by ldb 初始化时间戳
+            timer = new AutoTimer(this);
+        }
+
+        /// <summary>
+        /// 计时器
+        /// </summary>
+        public AutoTimer Timer
+        {
+            get { return timer; }
+        }
+
+        /// <summary>
+        /// 获取或设置所属板卡号
+        /// </summary>
+        public string CardNumber
+        {
+            get
+            {
+                return cardNumber;
+            }
+            set
+            {
+                if (cardNumber != value)
+                {
+                    cardNumber = value;
+                    this.OnPropertyChanged(p => p.CardNumber);
+                }
+            }
+        }
+
+        private string number;
+        /// <summary>
+        /// 获取或设置通道号
+        /// </summary>
+        public string Number
+        {
+            get
+            {
+                return number;
+            }
+            set
+            {
+                if (number != value)
+                {
+                    number = value;
+                    this.OnPropertyChanged(p => p.Number);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取板卡与通道号合并后的号
+        /// </summary>
+        public string CombineNumber
+        {
+            get
+            {
+                return CardNumber + "-" + Number;
+            }
+        }
+
+        private States state = States.STOP;
+        /// <summary>
+        /// 获取或设置通道状态
+        /// </summary>
+        public States State
+        {
+            get
+            {
+                return state;
+            }
+            set
+            {
+                if (state != value)
+                {
+                    state = value;
+                    this.OnPropertyChanged(p => p.State);
+                }
+            }
+        }
+
+        private VoltageType voltageType;
+
+        /// <summary>
+        /// 获取或设置电压类型
+        /// </summary>
+        public VoltageType VoltageType
+        {
+            get
+            {
+                return voltageType;
+            }
+            set
+            {
+                if (value != voltageType)
+                {
+                    voltageType = value;
+                    this.OnPropertyChanged(p => p.voltageType);
+                }
+            }
+        }
+
+
+        private double voltage;
+        /// <summary>
+        /// 获取或设置电压
+        /// </summary>
+        public double Voltage
+        {
+            get
+            {
+                return voltage;
+            }
+            set
+            {
+                if (voltage != value)
+                {
+                    voltage = value;
+                    this.OnPropertyChanged(p => p.Voltage);
+                }
+            }
+        }
+
+        private double electricity;
+        /// <summary>
+        /// 获取或设置电流
+        /// </summary>
+        public double Electricity
+        {
+            get
+            {
+                return electricity;
+            }
+            set
+            {
+                if (electricity != value)
+                {
+                    electricity = value;
+                    this.OnPropertyChanged(p => p.Electricity);
+                }
+            }
+        }
+
+        private double ohm;
+        /// <summary>
+        /// 获取或设置电阻
+        /// </summary>
+        public double Ohm
+        {
+            get
+            {
+                return ohm;
+            }
+            set
+            {
+                if (ohm != value)
+                {
+                    ohm = value;
+                    this.OnPropertyChanged(p => p.Ohm);
+                }
+            }
+        }
+
+        private double duration;
+        /// <summary>
+        /// 获取或设置测试时长
+        /// </summary>
+        public double Duration
+        {
+            get
+            {
+                return duration;
+            }
+            set
+            {
+                if (duration != value)
+                {
+                    duration = value;
+                    this.OnPropertyChanged(p => p.Duration);
+                    this.OnPropertyChanged(p => p.Percent);
+                }
+            }
+        }
+
+        private double actualDuration;
+        /// <summary>
+        /// 获取或设置实际测试时长
+        /// </summary>
+        public double ActualDuration
+        {
+            get
+            {
+                return actualDuration;
+            }
+            set
+            {
+                if (actualDuration != value)
+                {
+                    actualDuration = value;
+                    this.OnPropertyChanged(p => p.ActualDuration);
+                    this.OnPropertyChanged(p => p.Percent);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取测试进度百分比
+        /// </summary>
+        public double Percent
+        {
+            get
+            {
+                return ActualDuration / Duration * 100;
+            }
+        }
+
+        private ImageSource pausePlayImageSource = ImageUri.PAUSE_IMAGE_SOURCE;
+        /// <summary>
+        /// 获取或设置通道暂停或继续的图片源
+        /// </summary>
+        public ImageSource PausePlayImageSource
+        {
+            get
+            {
+                return pausePlayImageSource;
+            }
+            set
+            {
+                if (pausePlayImageSource != value)
+                {
+                    pausePlayImageSource = value;
+                    this.OnPropertyChanged(p => p.PausePlayImageSource);
+                }
+            }
+        }
+
+        private string imageTooltip = "暂停";
+        /// <summary>
+        /// 获取或设置图片提示信息
+        /// </summary>
+        public string ImageTooltip
+        {
+            get
+            {
+                return imageTooltip;
+            }
+            set
+            {
+                if (imageTooltip != value)
+                {
+                    imageTooltip = value;
+                    this.OnPropertyChanged(p => p.ImageTooltip);
+                }
+            }
+        }
+
+        public void ParseString(string read)//从串口得到了数据
+        {
+            double VoltageLow = 0;
+
+
+
+            System.Diagnostics.Debug.Assert(read != null && read.Length == 8);//判断数据的合法性
+            Voltage = CommonUtility.HexToDouble(read.Substring(4, 4));
+            VoltageLow = CommonUtility.HexToDouble(read.Substring(0, 4));
+
+            if (VoltageLow == 0)//当采到0的时候说明底层信号非常小，这个数据被丢弃了，这时候显示之前数组里的数据。
+            {
+                voltage = VoltageLowTemp[4];
+                electricity = ElectricityTemp[4];
+                ohm = ohmTemp[4];
+            }
+            else
+            {
+                for (int i = 1; i < 5; i++)
+                {
+                    VoltageLowTemp[i - 1] = VoltageLowTemp[i];
+                    VoltageTemp[i - 1] = VoltageTemp[i];
+                    ohmTemp[i - 1] = ohmTemp[i];
+                }
+                
+                VoltageLowTemp[4] = VoltageLow;
+                //VoltageTemp[4] = voltage;
+
+                ElectricityTemp[4] = 2 * (Voltage - VoltageLow);
+                ohmTemp[4] = VoltageLow / ElectricityTemp[4];
+
+                voltage = (VoltageLowTemp[0] + VoltageLowTemp[1] + VoltageLowTemp[2] + VoltageLowTemp[3] + VoltageLowTemp[4]) / 5;
+                electricity = (ElectricityTemp[0] + ElectricityTemp[1] + ElectricityTemp[2] + ElectricityTemp[3] + ElectricityTemp[4])/5;
+                ohm = (ohmTemp[0] + ohmTemp[1] + ohmTemp[2] + ohmTemp[3] + ohmTemp[4]) / 5;
+            }
+            if (voltage > 32768)
+            {
+                voltage = 32768;
+            }
+
+            if (electricity > 200)
+            {
+                electricity = 200;
+            }
+
+            if (ohm > 10000)
+            {
+                ohm = 10000;
+            }
+            else if (ohm < 0)
+            {
+                ohm = 0;
+            }
+
+            System.Diagnostics.Debug.WriteLine("电压: "+ Voltage.ToString() + ", 电流：" +
+                Electricity.ToString() + ", 电阻：" + Ohm.ToString());
+        }
+    }
+}
